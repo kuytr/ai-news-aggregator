@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}NewsAI - AI-Powered News Aggregator{% endblock %}
+
+{% block content %}
+
+<!-- ── Hero ─────────────────────────────────────────────────────────────── -->
+<section style="padding: 60px 0 40px; background: linear-gradient(180deg, rgba(103,232,249,0.03) 0%, transparent 100%); border-bottom: 1px solid var(--border);">
+  <div class="container">
+    <div class="row align-items-center">
+      <div class="col-lg-7 fade-up fade-up-1">
+        <div class="d-flex align-items-center gap-2 mb-3">
+          <span class="badge-sentiment badge-positive">
+            <i class="bi bi-circle-fill me-1" style="font-size:0.5rem;"></i>Live
+          </span>
+          <span style="font-size:0.8rem; color: var(--text-muted);">AI-summarized · Sentiment-analyzed · Personalized</span>
+        </div>
+        <h1 style="font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800; line-height: 1.15; letter-spacing: -0.03em; margin-bottom: 16px;">
+          News that <span class="glow-text">thinks</span><br>with you.
+        </h1>
+        <p style="color: var(--text-dim); font-size: 1rem; max-width: 500px; margin-bottom: 28px;">
+          Real-time news from hundreds of sources, summarized by AI, filtered by sentiment, and ranked for what matters to you.
+        </p>
+        {% if not current_user %}
+        <div class="d-flex gap-3 flex-wrap">
+          <a href="/register" class="btn-primary-custom">Start for free <i class="bi bi-arrow-right ms-1"></i></a>
+          <a href="#feed" class="btn-outline-custom">Browse news</a>
+        </div>
+        {% endif %}
+      </div>
+      <div class="col-lg-5 d-none d-lg-flex justify-content-end fade-up fade-up-2">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 340px; width: 100%;">
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; grid-column: span 2;">
+            <div class="d-flex justify-content-between align-items-start">
+              <span class="badge-sentiment badge-positive">Positive</span>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">AI · 2m ago</span>
+            </div>
+            <p style="font-family: var(--font-display); font-size: 0.9rem; font-weight: 700; margin: 10px 0 0 0; color: var(--text-primary);">
+              OpenAI releases GPT-5 with advanced reasoning capabilities
+            </p>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 14px;">
+            <div class="d-flex align-items-center gap-1 mb-2">
+              <i class="bi bi-eye" style="color: var(--text-muted); font-size: 0.75rem;"></i>
+              <span style="font-size: 0.7rem; color: var(--text-muted);">2.4k views</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim); margin: 0;">Markets surge on positive inflation data</p>
+          </div>
+          <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 14px;">
+            <div class="d-flex align-items-center gap-1 mb-2">
+              <span class="badge-sentiment badge-negative" style="font-size: 0.6rem;">Negative</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-dim); margin: 0;">Tech layoffs continue at major firms</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Feed Controls ─────────────────────────────────────────────────────── -->
+<section id="feed" style="padding: 32px 0 16px;">
+  <div class="container">
+    <form method="GET" action="/" id="filterForm">
+      <div class="row g-3 align-items-center mb-4">
+
+        <!-- Search -->
+        <div class="col-md-5">
+          <div class="search-wrapper">
+            <i class="bi bi-search search-icon"></i>
+            <input
+              type="text"
+              name="search"
+              value="{{ search }}"
+              placeholder="Search articles, topics, sources..."
+              class="form-control search-input"
+              id="searchInput"
+            />
+          </div>
+        </div>
+
+        <!-- Sort -->
+        <div class="col-md-3">
+          <select name="sort" class="form-select form-control-dark"
+                  style="padding: 10px 14px !important;"
+                  onchange="document.getElementById('filterForm').submit()">
+            <option value="rank"    {% if sort=='rank'    %}selected{% endif %}>🏆 Top Ranked</option>
+            <option value="latest"  {% if sort=='latest'  %}selected{% endif %}>⏰ Latest</option>
+            <option value="views"   {% if sort=='views'   %}selected{% endif %}>🔥 Most Viewed</option>
+          </select>
+        </div>
+
+        <!-- Search Button -->
+        <div class="col-md-2">
+          <button type="submit" class="btn-primary-custom w-100" style="padding: 10px 16px;">
+            <i class="bi bi-search me-1"></i> Search
+          </button>
+        </div>
+
+        <!-- Result count -->
+        <div class="col-md-2 text-end">
+          <span style="font-size: 0.8rem; color: var(--text-muted);">
+            <strong style="color: var(--accent-cyan);">{{ total }}</strong> articles
+          </span>
+        </div>
+
+        <!-- Hidden fields to preserve state -->
+        <input type="hidden" name="category" value="{{ selected_category }}" />
+        <input type="hidden" name="page" value="1" />
+      </div>
+
+      <!-- Category Pills -->
+      <div class="d-flex gap-2 flex-wrap">
+        {% for cat in categories %}
+        <a
+          href="/?category={{ cat }}&sort={{ sort }}&search={{ search }}&page=1"
+          class="category-pill {% if selected_category == cat %}active{% endif %}"
+        >
+          {% if cat == 'All' %}<i class="bi bi-grid me-1"></i>
+          {% elif cat == 'AI' %}<i class="bi bi-cpu me-1"></i>
+          {% elif cat == 'Technology' %}<i class="bi bi-lightning me-1"></i>
+          {% elif cat == 'Finance' %}<i class="bi bi-graph-up me-1"></i>
+          {% elif cat == 'Sports' %}<i class="bi bi-trophy me-1"></i>
+          {% elif cat == 'Science' %}<i class="bi bi-telescope me-1"></i>
+          {% elif cat == 'Health' %}<i class="bi bi-heart-pulse me-1"></i>
+          {% elif cat == 'Business' %}<i class="bi bi-briefcase me-1"></i>
+          {% elif cat == 'World' %}<i class="bi bi-globe me-1"></i>
+          {% endif %}
+          {{ cat }}
+        </a>
+        {% endfor %}
+      </div>
+
+    </form>
+  </div>
+</section>
+
+<!-- ── Article Grid ──────────────────────────────────────────────────────── -->
+<section style="padding: 16px 0 48px;">
+  <div class="container">
+
+    {% if articles %}
+    <div class="row g-4">
+      {% for article in articles %}
+      <div class="col-sm-6 col-lg-4 col-xl-3 fade-up" style="animation-delay: {{ loop.index0 * 0.04 }}s; opacity: 0;">
+        <a href="/article/{{ article.id }}" class="news-card d-block">
+          <div class="card-img-wrapper">
+            {% if article.image_url %}
+              <img src="{{ article.image_url }}" alt="{{ article.title }}" loading="lazy"
+                   onerror="this.parentElement.innerHTML='<div class=card-img-placeholder><i class=bi bi-newspaper></i></div>'"/>
+            {% else %}
+              <div class="card-img-placeholder">
+                <i class="bi bi-newspaper"></i>
+              </div>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="card-category">{{ article.category }}</span>
+              <span class="badge-sentiment badge-{{ article.sentiment }}">{{ article.sentiment }}</span>
+            </div>
+            <h3 class="card-title">{{ article.title }}</h3>
+            {% if article.summary %}
+              <p class="card-desc">{{ article.summary }}</p>
+            {% elif article.description %}
+              <p class="card-desc">{{ article.description }}</p>
+            {% endif %}
+            <div class="card-meta">
+              <span class="card-source">
+                <i class="bi bi-rss me-1"></i>{{ article.source or 'Unknown' }}
+              </span>
+              <span class="stat-chip">
+                <i class="bi bi-eye"></i> {{ article.view_count }}
+              </span>
+              {% if article.published_at %}
+              <span class="card-date">
+                {{ article.published_at.strftime('%b %d') }}
+              </span>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- ── Pagination ──────────────────────────────────────────────────── -->
+    {% if total_pages > 1 %}
+    <nav class="mt-5 d-flex justify-content-center">
+      <ul class="pagination gap-1">
+        <!-- Previous -->
+        <li class="page-item {% if page <= 1 %}disabled{% endif %}">
+          <a class="page-link" href="/?category={{ selected_category }}&sort={{ sort }}&search={{ search }}&page={{ page - 1 }}">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>
+
+        <!-- Page numbers (show window of 5 around current) -->
+        {% set start = [1, page - 2] | max %}
+        {% set end = [total_pages, page + 2] | min %}
+        {% if start > 1 %}
+          <li class="page-item">
+            <a class="page-link" href="/?category={{ selected_category }}&sort={{ sort }}&search={{ search }}&page=1">1</a>
+          </li>
+          {% if start > 2 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+        {% endif %}
+        {% for p in range(start, end + 1) %}
+        <li class="page-item {% if p == page %}active{% endif %}">
+          <a class="page-link" href="/?category={{ selected_category }}&sort={{ sort }}&search={{ search }}&page={{ p }}">{{ p }}</a>
+        </li>
+        {% endfor %}
+        {% if end < total_pages %}
+          {% if end < total_pages - 1 %}<li class="page-item disabled"><span class="page-link">…</span></li>{% endif %}
+          <li class="page-item">
+            <a class="page-link" href="/?category={{ selected_category }}&sort={{ sort }}&search={{ search }}&page={{ total_pages }}">{{ total_pages }}</a>
+          </li>
+        {% endif %}
+
+        <!-- Next -->
+        <li class="page-item {% if page >= total_pages %}disabled{% endif %}">
+          <a class="page-link" href="/?category={{ selected_category }}&sort={{ sort }}&search={{ search }}&page={{ page + 1 }}">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+    {% endif %}
+
+    {% else %}
+    <!-- Empty state -->
+    <div class="text-center py-5">
+      <i class="bi bi-newspaper" style="font-size: 3rem; color: var(--border-bright);"></i>
+      <h3 style="font-family: var(--font-display); margin-top: 16px; color: var(--text-dim);">No articles found</h3>
+      <p style="color: var(--text-muted);">
+        {% if search %}No results for "{{ search }}". Try a different search.
+        {% else %}Check back soon — we fetch news every 30 minutes.{% endif %}
+      </p>
+      {% if search %}
+      <a href="/" class="btn-outline-custom mt-2">Clear search</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+  </div>
+</section>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Auto-submit search on Enter
+  document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') document.getElementById('filterForm').submit();
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Login — AI News{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="bi bi-lightning-charge-fill text-accent"></i>
+                <span>AI<span class="text-accent">News</span></span>
+            </div>
+            <h2 class="auth-title">Welcome Back</h2>
+            <p class="auth-subtitle">Sign in to your personalized news feed</p>
+
+            {% if error %}
+            <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i>{{ error }}</div>
+            {% endif %}
+
+            <form method="post" action="/auth/login">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <input type="email" class="form-control" name="email"
+                               value="{{ email | default('') }}" placeholder="john@example.com" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" name="password" placeholder="Password" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-accent w-100 btn-lg">
+                    <i class="bi bi-box-arrow-in-right me-2"></i>Login
+                </button>
+            </form>
+
+            <p class="auth-footer-text">
+                Don't have an account? <a href="/auth/register" class="text-accent">Sign Up</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

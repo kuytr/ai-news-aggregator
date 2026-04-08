@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Verify Email — AI News{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="bi bi-shield-check text-accent" style="font-size: 2.5rem;"></i>
+            </div>
+            <h2 class="auth-title">Verify Your Email</h2>
+            <p class="auth-subtitle">
+                We sent a 6-digit code to<br>
+                <strong class="text-accent">{{ email }}</strong>
+            </p>
+
+            {% if error %}
+            <div class="alert alert-danger"><i class="bi bi-exclamation-circle me-2"></i>{{ error }}</div>
+            {% endif %}
+            {% if success %}
+            <div class="alert alert-success">
+                <i class="bi bi-check-circle me-2"></i>{{ success }}
+                <a href="/auth/login" class="btn btn-accent btn-sm ms-2">Login Now</a>
+            </div>
+            {% else %}
+            <form method="post" action="/auth/verify-otp">
+                <input type="hidden" name="email" value="{{ email }}">
+
+                <div class="mb-4">
+                    <label class="form-label text-muted">Enter OTP Code</label>
+                    <input type="text" class="form-control form-control-lg text-center otp-input"
+                           name="otp" maxlength="6" placeholder="• • • • • •"
+                           autocomplete="one-time-code" required>
+                </div>
+
+                <button type="submit" class="btn btn-accent w-100 btn-lg">
+                    <i class="bi bi-check-lg me-2"></i>Verify Email
+                </button>
+            </form>
+
+            <div class="text-center mt-3">
+                <form method="post" action="/auth/resend-otp" class="d-inline">
+                    <input type="hidden" name="email" value="{{ email }}">
+                    <button type="submit" class="btn btn-link text-muted small">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Resend OTP
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

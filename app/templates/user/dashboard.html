@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - NewsAI{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 36px 0 60px;">
+
+  <!-- Header -->
+  <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-5 fade-up fade-up-1">
+    <div>
+      <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 4px;">
+        <i class="bi bi-person-circle me-1"></i> {{ current_user.email }}
+      </p>
+      <h1 class="section-title" style="margin: 0;">
+        Good day, <span class="glow-text">{{ current_user.username }}</span> 👋
+      </h1>
+    </div>
+    <a href="/logout" class="btn-outline-custom">
+      <i class="bi bi-box-arrow-right me-1"></i> Sign out
+    </a>
+  </div>
+
+  <div class="row g-4">
+
+    <!-- ── Left Column: Feed ────────────────────────────────────────────── -->
+    <div class="col-lg-8">
+
+      <!-- Personalized News -->
+      <div class="mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+          <h2 class="section-title" style="font-size: 1.2rem;">
+            <i class="bi bi-stars me-2" style="color: var(--accent-cyan);"></i>For You
+          </h2>
+          <a href="/" style="font-size: 0.8rem; color: var(--accent-cyan); text-decoration: none;">
+            See all <i class="bi bi-arrow-right ms-1"></i>
+          </a>
+        </div>
+
+        {% if personalized_articles %}
+        <div class="row g-3">
+          {% for article in personalized_articles %}
+          <div class="col-sm-6 fade-up" style="animation-delay: {{ loop.index0 * 0.05 }}s; opacity: 0;">
+            <a href="/article/{{ article.id }}" class="news-card d-block">
+              <div class="card-img-wrapper" style="aspect-ratio: 16/9;">
+                {% if article.image_url %}
+                  <img src="{{ article.image_url }}" alt="" loading="lazy"
+                       onerror="this.parentElement.innerHTML='<div class=card-img-placeholder><i class=bi bi-newspaper></i></div>'"/>
+                {% else %}
+                  <div class="card-img-placeholder"><i class="bi bi-newspaper"></i></div>
+                {% endif %}
+              </div>
+              <div class="card-body">
+                <div class="d-flex align-items-center justify-content-between mb-1">
+                  <span class="card-category">{{ article.category }}</span>
+                  <span class="badge-sentiment badge-{{ article.sentiment }}">{{ article.sentiment }}</span>
+                </div>
+                <h3 class="card-title" style="font-size: 0.9rem;">{{ article.title }}</h3>
+                {% if article.summary %}
+                  <p class="card-desc" style="font-size: 0.8rem;">{{ article.summary }}</p>
+                {% elif article.description %}
+                  <p class="card-desc" style="font-size: 0.8rem;">{{ article.description }}</p>
+                {% endif %}
+                <div class="card-meta">
+                  <span class="card-source">{{ article.source or 'Unknown' }}</span>
+                  <span class="stat-chip"><i class="bi bi-eye"></i> {{ article.view_count }}</span>
+                </div>
+              </div>
+            </a>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 32px; text-align: center; color: var(--text-muted);">
+          <i class="bi bi-newspaper" style="font-size: 2rem;"></i>
+          <p style="margin: 12px 0 0 0; font-size: 0.875rem;">
+            No personalized articles yet. Set your preferences →
+          </p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Recently Viewed -->
+      {% if recently_viewed %}
+      <div class="mt-5">
+        <h2 class="section-title mb-3" style="font-size: 1.1rem;">
+          <i class="bi bi-clock-history me-2" style="color: var(--accent-violet);"></i>Recently Viewed
+        </h2>
+        <div class="d-flex flex-column gap-2">
+          {% for article in recently_viewed %}
+          <a href="/article/{{ article.id }}"
+             style="background: var(--bg-card); border: 1px solid var(--border);
+                    border-radius: 12px; padding: 14px 16px; text-decoration: none;
+                    transition: border-color 0.2s, background 0.2s; display: flex; align-items: center; gap: 14px;"
+             onmouseover="this.style.borderColor='var(--border-bright)'; this.style.background='var(--bg-card-hover)'"
+             onmouseout="this.style.borderColor='var(--border)'; this.style.background='var(--bg-card)'">
+            <span class="badge-sentiment badge-{{ article.sentiment }}">{{ article.sentiment }}</span>
+            <span style="color: var(--text-primary); font-size: 0.875rem; font-weight: 500; flex: 1;">
+              {{ article.title | truncate(80) }}
+            </span>
+            <span style="color: var(--text-muted); font-size: 0.75rem; white-space: nowrap;">
+              {{ article.category }}
+            </span>
+            <i class="bi bi-chevron-right" style="color: var(--text-muted); font-size: 0.7rem;"></i>
+          </a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+
+    <!-- ── Right Column: Sidebar ─────────────────────────────────────────── -->
+    <div class="col-lg-4">
+
+      <!-- Trending -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+        <h2 class="section-title mb-3" style="font-size: 1rem;">
+          <i class="bi bi-fire me-2" style="color: #f97316;"></i>Trending
+        </h2>
+        {% for article in trending %}
+        <div class="d-flex gap-3 {% if not loop.last %}mb-3 pb-3{% endif %}" style="{% if not loop.last %}border-bottom: 1px solid var(--border);{% endif %}">
+          <span style="font-family: var(--font-display); font-size: 1.8rem; font-weight: 800;
+                       color: var(--border-bright); line-height: 1; flex-shrink: 0; width: 28px;">
+            {{ loop.index }}
+          </span>
+          <div>
+            <a href="/article/{{ article.id }}"
+               style="color: var(--text-primary); text-decoration: none; font-size: 0.82rem;
+                      font-weight: 600; line-height: 1.4; display: block; margin-bottom: 4px;"
+               onmouseover="this.style.color='var(--accent-cyan)'"
+               onmouseout="this.style.color='var(--text-primary)'">
+              {{ article.title | truncate(65) }}
+            </a>
+            <span style="font-size: 0.7rem; color: var(--text-muted);">
+              <i class="bi bi-eye me-1"></i>{{ article.view_count }} views
+            </span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Preferences -->
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 20px;">
+        <h2 class="section-title mb-1" style="font-size: 1rem;">
+          <i class="bi bi-sliders me-2" style="color: var(--accent-violet);"></i>My Preferences
+        </h2>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin-bottom: 16px;">
+          Select categories for personalized news
+        </p>
+        <form method="POST" action="/dashboard/preferences">
+          <div class="d-flex flex-wrap gap-2 mb-4">
+            {% for cat in categories %}
+            {% if cat != 'All' %}
+            <label style="cursor: pointer;">
+              <input type="checkbox" name="categories" value="{{ cat }}"
+                     class="d-none pref-cb" id="pref_{{ cat }}"
+                     {% if cat in preferred %}checked{% endif %}/>
+              <span class="category-pill {% if cat in preferred %}active{% endif %}"
+                    id="label_{{ cat }}"
+                    style="font-size: 0.72rem; padding: 4px 12px;">
+                {{ cat }}
+              </span>
+            </label>
+            {% endif %}
+            {% endfor %}
+          </div>
+          <button type="submit" class="btn-primary-custom w-100" style="padding: 10px;">
+            Save Preferences
+          </button>
+        </form>
+      </div>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Toggle category pill visual state on checkbox change
+  document.querySelectorAll('.pref-cb').forEach(cb => {
+    cb.addEventListener('change', function() {
+      const label = document.getElementById('label_' + this.value);
+      if (this.checked) label.classList.add('active');
+      else label.classList.remove('active');
+    });
+  });
+</script>
+{% endblock %}

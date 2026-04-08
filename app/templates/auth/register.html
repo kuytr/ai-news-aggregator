@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Register — AI News{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="bi bi-lightning-charge-fill text-accent"></i>
+                <span>AI<span class="text-accent">News</span></span>
+            </div>
+            <h2 class="auth-title">Create Account</h2>
+            <p class="auth-subtitle">Join thousands of readers staying informed</p>
+
+            {% if errors %}
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    {% for error in errors %}<li>{{ error }}</li>{% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/auth/register">
+                <div class="mb-3">
+                    <label class="form-label text-muted">Username</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" name="username"
+                               value="{{ username | default('') }}" placeholder="johndoe" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted">Email Address</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+                        <input type="email" class="form-control" name="email"
+                               value="{{ email | default('') }}" placeholder="john@example.com" required>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label text-muted">Password</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" name="password"
+                               placeholder="Min 6 characters" required>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-accent w-100 btn-lg">
+                    <i class="bi bi-person-plus me-2"></i>Create Account
+                </button>
+            </form>
+
+            <p class="auth-footer-text">
+                Already have an account? <a href="/auth/login" class="text-accent">Login</a>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

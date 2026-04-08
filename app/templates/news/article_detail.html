@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}{{ article.title }} - NewsAI{% endblock %}
+
+{% block content %}
+<div class="container" style="padding: 40px 0 60px; max-width: 900px;">
+
+  <!-- Breadcrumb -->
+  <nav class="mb-4" style="font-size: 0.8rem;">
+    <a href="/" style="color: var(--text-muted); text-decoration:none;">Home</a>
+    <span style="color: var(--border-bright); margin: 0 8px;">›</span>
+    <a href="/?category={{ article.category }}" style="color: var(--accent-cyan); text-decoration:none;">{{ article.category }}</a>
+    <span style="color: var(--border-bright); margin: 0 8px;">›</span>
+    <span style="color: var(--text-muted);">Article</span>
+  </nav>
+
+  <!-- Article Card -->
+  <article style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 20px; overflow: hidden;">
+
+    <!-- Hero Image -->
+    {% if article.image_url %}
+    <div style="width:100%; aspect-ratio: 16/6; overflow: hidden; background: var(--bg-surface);">
+      <img src="{{ article.image_url }}" alt="{{ article.title }}"
+           style="width:100%; height:100%; object-fit:cover;"
+           onerror="this.parentElement.style.display='none'"/>
+    </div>
+    {% endif %}
+
+    <!-- Content -->
+    <div style="padding: clamp(24px, 5%, 48px);">
+
+      <!-- Meta row -->
+      <div class="d-flex flex-wrap align-items-center gap-2 mb-4">
+        <a href="/?category={{ article.category }}"
+           class="category-pill active" style="font-size: 0.7rem; padding: 4px 12px;">
+          {{ article.category }}
+        </a>
+        <span class="badge-sentiment badge-{{ article.sentiment }}">{{ article.sentiment }}</span>
+        {% if article.source %}
+        <span class="stat-chip"><i class="bi bi-rss"></i> {{ article.source }}</span>
+        {% endif %}
+        {% if article.published_at %}
+        <span class="stat-chip"><i class="bi bi-calendar3"></i> {{ article.published_at.strftime('%B %d, %Y') }}</span>
+        {% endif %}
+        <span class="stat-chip"><i class="bi bi-eye"></i> {{ article.view_count }} views</span>
+      </div>
+
+      <!-- Title -->
+      <h1 style="font-size: clamp(1.4rem, 4vw, 2.2rem); font-weight: 800; letter-spacing: -0.03em; line-height: 1.25; margin-bottom: 24px; color: var(--text-primary);">
+        {{ article.title }}
+      </h1>
+
+      <!-- AI Summary -->
+      {% if article.summary %}
+      <div style="background: linear-gradient(135deg, rgba(103,232,249,0.06), rgba(129,140,248,0.06));
+                  border: 1px solid rgba(103,232,249,0.2);
+                  border-radius: 14px; padding: 20px 24px; margin-bottom: 28px;">
+        <div class="d-flex align-items-center gap-2 mb-2">
+          <i class="bi bi-stars" style="color: var(--accent-cyan);"></i>
+          <span style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+                       letter-spacing: 0.1em; color: var(--accent-cyan);">AI Summary</span>
+        </div>
+        <p style="color: var(--text-dim); font-size: 0.95rem; line-height: 1.7; margin: 0;">
+          {{ article.summary }}
+        </p>
+      </div>
+      {% endif %}
+
+      <!-- Description / Content -->
+      {% if article.description %}
+      <p style="color: var(--text-dim); font-size: 1rem; line-height: 1.8; margin-bottom: 24px;">
+        {{ article.description }}
+      </p>
+      {% endif %}
+
+      {% if article.content and article.content != article.description %}
+      <div style="color: var(--text-dim); font-size: 0.95rem; line-height: 1.8; margin-bottom: 28px;
+                  border-top: 1px solid var(--border); padding-top: 20px;">
+        {{ article.content | safe }}
+      </div>
+      {% endif %}
+
+      <!-- Sentiment breakdown -->
+      <div style="background: var(--bg-surface); border: 1px solid var(--border);
+                  border-radius: 12px; padding: 16px 20px; margin-bottom: 28px;">
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            <span style="font-size: 0.78rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;">Sentiment Score</span>
+            <div class="d-flex align-items-center gap-2 mt-1">
+              <span class="badge-sentiment badge-{{ article.sentiment }}" style="font-size: 0.75rem; padding: 4px 12px;">
+                {{ article.sentiment | capitalize }}
+              </span>
+              <span style="font-size: 0.85rem; color: var(--text-dim);">
+                {{ "%.2f" | format(article.sentiment_score) }} polarity
+              </span>
+            </div>
+          </div>
+          <!-- Polarity bar -->
+          <div style="width: 120px;">
+            {% set pct = ((article.sentiment_score + 1) / 2 * 100) | int %}
+            <div style="height: 6px; background: var(--border); border-radius: 3px; overflow: hidden;">
+              <div style="height: 100%; width: {{ pct }}%;
+                          background: {% if article.sentiment == 'positive' %}var(--positive){% elif article.sentiment == 'negative' %}var(--negative){% else %}var(--neutral){% endif %};
+                          border-radius: 3px; transition: width 1s ease;"></div>
+            </div>
+            <div class="d-flex justify-content-between mt-1" style="font-size: 0.65rem; color: var(--text-muted);">
+              <span>Negative</span><span>Positive</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Read original link -->
+      <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" class="btn-primary-custom d-inline-flex align-items-center gap-2">
+        Read Full Article <i class="bi bi-box-arrow-up-right"></i>
+      </a>
+
+    </div>
+  </article>
+
+  <!-- Related Articles -->
+  {% if related %}
+  <section style="margin-top: 48px;">
+    <h2 class="section-title mb-4">More in <span class="glow-text">{{ article.category }}</span></h2>
+    <div class="row g-3">
+      {% for rel in related %}
+      <div class="col-sm-6 col-lg-3">
+        <a href="/article/{{ rel.id }}" class="news-card d-block" style="font-size: 0.875rem;">
+          <div class="card-img-wrapper" style="aspect-ratio: 16/9;">
+            {% if rel.image_url %}
+              <img src="{{ rel.image_url }}" alt="" loading="lazy"
+                   onerror="this.parentElement.innerHTML='<div class=card-img-placeholder><i class=bi bi-newspaper></i></div>'"/>
+            {% else %}
+              <div class="card-img-placeholder"><i class="bi bi-newspaper"></i></div>
+            {% endif %}
+          </div>
+          <div class="card-body" style="padding: 14px;">
+            <span class="badge-sentiment badge-{{ rel.sentiment }}" style="margin-bottom: 8px; display: inline-block;">{{ rel.sentiment }}</span>
+            <h4 class="card-title" style="font-size: 0.875rem;">{{ rel.title }}</h4>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+</div>
+{% endblock %}
