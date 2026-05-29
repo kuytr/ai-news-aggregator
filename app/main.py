@@ -39,17 +39,8 @@ async def lifespan(app: FastAPI):
     start_scheduler()
     logger.info("✅ Scheduler started.")
 
-    # Do an immediate first fetch on startup
-    try:
-        from app.database import SessionLocal
-        from app.services.news_fetcher import fetch_all_news
-        db = SessionLocal()
-        count = fetch_all_news(db)
-        db.close()
-        logger.info(f"✅ Initial news fetch complete: {count} articles.")
-    except Exception as e:
-        logger.error(f"⚠️ Initial news fetch failed: {e}")
-
+    # Do not block startup with an immediate NewsAPI fetch.
+    # The scheduler will refresh news in the background.
     yield  # App is running
 
     # Shutdown
