@@ -5,7 +5,8 @@ Configures SQLAlchemy engine, session factory, and base model.
 Uses SQLite for local dev; easily swappable for PostgreSQL in production.
 """
 
-from sqlalchemy import create_engine
+import sqlite3
+from sqlalchemy import create_engine, event
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from typing import Generator
@@ -14,11 +15,31 @@ from app.config import settings
 
 # Create SQLAlchemy engine
 # check_same_thread=False is required for SQLite with FastAPI
+sqlite_connect_args = {}
+if "sqlite" in settings.database_url:
+    sqlite_connect_args = {
+        "check_same_thread": False,
+        "timeout": 30,
+    }
+
 engine = create_engine(
     settings.database_url,
-    connect_args={"check_same_thread": False} if "sqlite" in settings.database_url else {},
+    connect_args=sqlite_connect_args,
     echo=settings.debug,  # Log SQL queries in debug mode
 )
+
+if "sqlite" in settings.database_url:
+    @event.listens_for(engine, "connect")
+    def _set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        try:
+            cursor.execute("PRAGMA journal_mode=WAL")
+            cursor.execute("PRAGMA foreign_keys=ON")
+        except sqlite3.OperationalError:
+            # Database may already be locked by another connection.
+            pass
+        finally:
+            cursor.close()
 
 # Session factory - each request gets its own session
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

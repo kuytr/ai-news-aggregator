@@ -2,14 +2,19 @@
 routers/news_router.py - News Article Routes
 """
 
-from fastapi import APIRouter, Depends, Request, Query
+import logging
+
+from fastapi import APIRouter, Depends, Request, Query, BackgroundTasks
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy import or_, desc
 from typing import Optional
 import math
 from datetime import datetime, timezone, timedelta
+
+logger = logging.getLogger(__name__)
 
 from app.database import get_db
 from app.models.article import Article, ArticleView
@@ -77,30 +82,55 @@ async def home(
     })
 
 
+def _update_article_views(article_id: int, user_id: Optional[int] = None) -> None:
+    """
+    Background task to update article view count and log user views.
+    Non-blocking - does not affect response time.
+    """
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        # Update article view count
+        article = db.query(Article).filter(Article.id == article_id).first()
+        if article:
+            article.view_count += 1
+            db.commit()
+        
+        # Log user view if user is logged in
+        if user_id:
+            existing_view = db.query(ArticleView).filter(
+                ArticleView.user_id == user_id,
+                ArticleView.article_id == article_id,
+            ).first()
+            if not existing_view:
+                view = ArticleView(user_id=user_id, article_id=article_id)
+                db.add(view)
+                db.commit()
+    except OperationalError:
+        # Silently fail if database is locked - view count is not critical
+        pass
+    except Exception as e:
+        logger.error(f"Failed to update article views: {e}")
+    finally:
+        db.close()
+
+
 @router.get("/article/{article_id}", response_class=HTMLResponse)
 async def article_detail(
     article_id: int,
     request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     article = db.query(Article).filter(Article.id == article_id).first()
     if not article:
         return templates.TemplateResponse("404.html", {"request": request}, status_code=404)
-
-    article.view_count += 1
-
-    if current_user:
-        existing_view = db.query(ArticleView).filter(
-            ArticleView.user_id == current_user.id,
-            ArticleView.article_id == article_id,
-        ).first()
-        if not existing_view:
-            view = ArticleView(user_id=current_user.id, article_id=article_id)
-            db.add(view)
-
-    db.commit()
-
+    
+    # Schedule view count update as background task (non-blocking)
+    background_tasks.add_task(_update_article_views, article_id, current_user.id if current_user else None)
+    
+    # Fetch related articles
     related = (
         db.query(Article)
         .filter(Article.category == article.category, Article.id != article.id)
