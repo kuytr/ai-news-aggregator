@@ -35,6 +35,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = ""
     smtp_from_name: str = "AI News Aggregator"
+    resend_api_key: str = "re_FPGSoCx5_4BPE6pfsXU7AawfrLKr4sztn"
 
     # --- OTP ---
     otp_expire_minutes: int = 10

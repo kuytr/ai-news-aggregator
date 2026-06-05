@@ -2,14 +2,12 @@
 services/email_service.py - Email Service
 
 Handles all outgoing emails: OTP verification, daily digest.
-Uses Python's built-in smtplib with STARTTLS.
+Uses Resend API instead of SMTP.
 """
 
-import smtplib
+import resend
 import logging
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from typing import List, Optional
+from typing import List
 from datetime import datetime
 
 from app.config import settings
@@ -17,42 +15,25 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-def _build_smtp_connection() -> smtplib.SMTP:
-    """Create and authenticate an SMTP connection."""
-    server = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
-    server.ehlo()
-    server.starttls()  # Upgrade to encrypted connection
-    server.login(settings.smtp_username, settings.smtp_password)
-    return server
-
-
 def send_email(to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
     """
-    Send an email with HTML and optional plain-text fallback.
+    Send an email using Resend API.
     
     Returns:
         True if sent successfully, False otherwise
     """
-    if not settings.smtp_username or not settings.smtp_password:
-        logger.warning("SMTP credentials not configured. Email not sent.")
+    if not settings.resend_api_key:
+        logger.warning("Resend API key not configured. Email not sent.")
         return False
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email}>"
-        msg["To"] = to_email
-
-        # Attach plain text part first (fallback)
-        if text_body:
-            msg.attach(MIMEText(text_body, "plain"))
-
-        # Attach HTML part (preferred by email clients)
-        msg.attach(MIMEText(html_body, "html"))
-
-        with _build_smtp_connection() as server:
-            server.sendmail(settings.smtp_from_email, to_email, msg.as_string())
-
+        resend.api_key = settings.resend_api_key
+        resend.Emails.send({
+            "from": f"{settings.smtp_from_name} <onboarding@resend.dev>",
+            "to": to_email,
+            "subject": subject,
+            "html": html_body,
+        })
         logger.info(f"Email sent to {to_email}: {subject}")
         return True
 
@@ -62,14 +43,6 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str = "")
 
 
 def send_otp_email(email: str, otp_code: str, username: str = "User") -> bool:
-    """
-    Send OTP verification email.
-    
-    Args:
-        email: Recipient email address
-        otp_code: The 6-digit OTP
-        username: User's display name
-    """
     subject = f"Your Verification Code - {settings.app_name}"
 
     html_body = f"""
@@ -102,15 +75,6 @@ def send_daily_digest(
     trending_articles: List[dict],
     personalized_articles: List[dict]
 ) -> bool:
-    """
-    Send daily news digest email with trending and personalized articles.
-    
-    Args:
-        email: Recipient email
-        username: User's display name
-        trending_articles: Top 5 trending articles
-        personalized_articles: Articles matching user preferences
-    """
     subject = f"📰 Your Daily News Digest - {datetime.now().strftime('%B %d, %Y')}"
 
     def article_html(art: dict, idx: int) -> str:
