@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +21,7 @@
             width: 56px;
             height: 56px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #00d4ff, #0099cc);
+            background: linear-gradient(135deg, #0284c7, #0369a1);
             border: none;
             color: white;
             font-size: 1.4rem;
@@ -53,13 +53,13 @@
 
         /* Toast */
         #refreshToast {
-            background: #1a1a2e;
-            border: 1px solid #00d4ff;
-            color: white;
+            background: #ffffff;
+            border: 1px solid #0284c7;
+            color: #172033;
             border-radius: 12px;
             padding: 12px 20px;
             font-size: 0.95rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 8px 24px rgba(15,23,42,0.12);
             min-width: 260px;
             text-align: center;
         }
@@ -71,7 +71,7 @@
 </head>
 <body>
     <!-- ========== NAVBAR ========== -->
-    <nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top">
         <div class="container">
             <a class="navbar-brand" href="/">
                 <i class="bi bi-lightning-charge-fill text-accent"></i>
@@ -111,7 +111,7 @@
                             <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                 <i class="bi bi-person-circle"></i> {{ current_user.username }}
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end">
                                 <li><a class="dropdown-item" href="/dashboard"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item text-danger" href="/auth/logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
@@ -140,7 +140,7 @@
         <div class="container text-center">
             <p class="mb-0 text-muted">
                 <i class="bi bi-lightning-charge-fill text-accent"></i>
-                <strong class="text-light">AI News Aggregator</strong> &mdash;
+                <strong class="text-dark">AI News Aggregator</strong> &mdash;
                 Powered by OpenAI &bull; FastAPI &bull; Bootstrap 5
             </p>
             <p class="text-muted small mt-1">© 2024 All rights reserved.</p>

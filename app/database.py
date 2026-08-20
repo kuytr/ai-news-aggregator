@@ -63,5 +63,5 @@ def get_db() -> Generator[Session, None, None]:
 def init_db() -> None:
     """Create all tables defined in models."""
     # Import all models to register them with Base
-    from app.models import user, article  # noqa: F401
+    from app.models import user, article, password_reset  # noqa: F401
     Base.metadata.create_all(bind=engine)

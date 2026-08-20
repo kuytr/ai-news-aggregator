@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     app_name: str = "AI News Aggregator"
     app_secret_key: str = "change-this-secret-key"
     debug: bool = False
+    app_base_url: str = "http://localhost:8000"
 
     # --- Database ---
     database_url: str = "sqlite:///./news_aggregator.db"
@@ -35,10 +36,11 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from_email: str = ""
     smtp_from_name: str = "AI News Aggregator"
-    resend_api_key: str = "re_FPGSoCx5_4BPE6pfsXU7AawfrLKr4sztn"
+    resend_api_key: str = ""
 
     # --- OTP ---
     otp_expire_minutes: int = 10
+    password_reset_expire_minutes: int = 30
 
     # --- RSS Feeds ---
     rss_feeds: str = (

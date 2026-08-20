@@ -1,27 +1,33 @@
 /* ============================================================
    AI News Aggregator - Main Stylesheet
-   Dark elegant theme with cyan accent color
+   Light modern theme with blue, indigo and cyan accents
    ============================================================ */
 
 /* ---- CSS Variables ---- */
 :root {
-    --bg-primary: #0f0f1a;
-    --bg-secondary: #1a1a2e;
-    --bg-card: #16213e;
-    --bg-card-hover: #1d2a4a;
-    --accent: #00d4ff;
-    --accent-glow: rgba(0, 212, 255, 0.15);
-    --accent-dim: rgba(0, 212, 255, 0.6);
-    --text-primary: #e0e0f0;
-    --text-secondary: #8888aa;
-    --text-muted: #555575;
-    --border-color: rgba(0, 212, 255, 0.15);
-    --border-hover: rgba(0, 212, 255, 0.4);
-    --shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-hover: 0 16px 48px rgba(0, 212, 255, 0.1);
-    --positive: #00c853;
-    --negative: #ff5252;
-    --neutral: #9e9e9e;
+    --bg-primary: #f6f8fc;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f7ff;
+
+    --accent: #2563eb;
+    --accent-glow: rgba(37, 99, 235, 0.10);
+    --accent-dim: #1d4ed8;
+
+    --text-primary: #172033;
+    --text-secondary: #526071;
+    --text-muted: #7b8794;
+
+    --border-color: rgba(30, 41, 59, 0.10);
+    --border-hover: rgba(37, 99, 235, 0.35);
+
+    --shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    --shadow-hover: 0 14px 35px rgba(37, 99, 235, 0.12);
+
+    --positive: #16a34a;
+    --negative: #dc2626;
+    --neutral: #64748b;
+
     --radius: 12px;
     --radius-sm: 6px;
     --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -55,7 +61,7 @@ a:hover { color: var(--accent-dim); }
    NAVBAR
    ============================================================ */
 .navbar {
-    background: rgba(15, 15, 26, 0.95) !important;
+    background: rgba(255, 255, 255, 0.95) !important;
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--border-color);
     padding: 12px 0;
@@ -82,23 +88,23 @@ a:hover { color: var(--accent-dim); }
 /* ---- Accent Button ---- */
 .btn-accent {
     background: var(--accent);
-    color: #0f0f1a;
+    color: #ffffff;
     font-weight: 700;
     border: none;
     transition: var(--transition);
 }
 .btn-accent:hover {
     background: var(--accent-dim);
-    color: #0f0f1a;
+    color: #ffffff;
     transform: translateY(-1px);
-    box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+    box-shadow: 0 4px 20px rgba(37, 99, 235, 0.25);
 }
 
 /* ============================================================
    HERO SECTION
    ============================================================ */
 .hero-section {
-    background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1b3e 50%, var(--bg-primary) 100%);
+    background: linear-gradient(135deg, #f8fbff 0%, #eef6ff 50%, #ffffff 100%);
     padding: 80px 0 60px;
     position: relative;
     overflow: hidden;
@@ -108,7 +114,7 @@ a:hover { color: var(--accent-dim); }
     content: '';
     position: absolute;
     width: 600px; height: 600px;
-    background: radial-gradient(circle, rgba(0, 212, 255, 0.06) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(37, 99, 235, 0.10) 0%, transparent 70%);
     top: -200px; right: -200px;
     pointer-events: none;
 }
@@ -191,7 +197,7 @@ a:hover { color: var(--accent-dim); }
 .category-pill.active {
     background: var(--accent);
     border-color: var(--accent);
-    color: #0f0f1a;
+    color: #ffffff;
     font-weight: 700;
 }
 
@@ -234,7 +240,7 @@ a:hover { color: var(--accent-dim); }
 .article-card:hover .article-image img { transform: scale(1.05); }
 .image-overlay {
     position: absolute; inset: 0;
-    background: linear-gradient(to bottom, transparent 50%, rgba(15, 15, 26, 0.8));
+    background: linear-gradient(to bottom, transparent 50%, rgba(23, 32, 51, 0.45));
 }
 
 .article-image-placeholder {
@@ -262,9 +268,9 @@ a:hover { color: var(--accent-dim); }
 }
 
 .category-tag {
-    background: rgba(0, 212, 255, 0.1);
+    background: rgba(37, 99, 235, 0.10);
     color: var(--accent);
-    border: 1px solid rgba(0, 212, 255, 0.2);
+    border: 1px solid rgba(37, 99, 235, 0.20);
     padding: 2px 10px;
     border-radius: 10px;
     font-size: 11px;
@@ -332,7 +338,7 @@ a:hover { color: var(--accent-dim); }
     transition: var(--transition);
 }
 .pagination .page-link:hover { background: var(--accent-glow); color: var(--accent); border-color: var(--accent); }
-.pagination .page-item.active .page-link { background: var(--accent); border-color: var(--accent); color: #0f0f1a; }
+.pagination .page-item.active .page-link { background: var(--accent); border-color: var(--accent); color: #ffffff; }
 .pagination .page-item.disabled .page-link { background: var(--bg-card); border-color: var(--border-color); color: var(--text-muted); }
 
 /* ============================================================
@@ -359,7 +365,7 @@ a:hover { color: var(--accent-dim); }
 .article-detail-image img { max-height: 450px; width: 100%; object-fit: cover; }
 
 .ai-summary-box {
-    background: linear-gradient(135deg, rgba(0, 212, 255, 0.05), rgba(0, 212, 255, 0.02));
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.05), rgba(99, 102, 241, 0.02));
     border: 1px solid var(--border-color);
     border-left: 4px solid var(--accent);
     border-radius: var(--radius);
@@ -419,7 +425,7 @@ a:hover { color: var(--accent-dim); }
    DASHBOARD
    ============================================================ */
 .dashboard-hero {
-    background: linear-gradient(135deg, var(--bg-secondary), var(--bg-primary));
+    background: linear-gradient(135deg, #ffffff, #f4f9ff);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -452,7 +458,7 @@ a:hover { color: var(--accent-dim); }
 .category-check-label:has(input:checked) {
     background: var(--accent);
     border-color: var(--accent);
-    color: #0f0f1a;
+    color: #ffffff;
     font-weight: 700;
 }
 
@@ -495,7 +501,7 @@ a:hover { color: var(--accent-dim); }
     min-height: calc(100vh - 70px);
     display: flex; align-items: center; justify-content: center;
     padding: 40px 16px;
-    background: radial-gradient(circle at 30% 40%, rgba(0, 212, 255, 0.05) 0%, transparent 60%);
+    background: radial-gradient(circle at 30% 40%, rgba(37, 99, 235, 0.05) 0%, transparent 60%);
 }
 .auth-container { width: 100%; max-width: 420px; }
 .auth-card {
@@ -527,7 +533,7 @@ a:hover { color: var(--accent-dim); }
 }
 .form-control:focus, .form-select:focus {
     border-color: var(--accent) !important;
-    box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.1) !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10) !important;
 }
 .form-control::placeholder { color: var(--text-muted) !important; }
 .form-label { color: var(--text-secondary); font-size: 13px; font-weight: 600; }
@@ -594,4 +600,153 @@ a:hover { color: var(--accent-dim); }
     .hero-stats { gap: 12px; font-size: 12px; }
     .auth-card { padding: 28px 24px; }
     .search-form { max-width: 100%; margin: 10px 0; }
+}
+
+
+/* ============================================================
+   LIGHT UI COLOR ENHANCEMENTS
+   ============================================================ */
+
+body {
+    background:
+        radial-gradient(circle at 5% 0%, rgba(37, 99, 235, 0.035), transparent 28%),
+        radial-gradient(circle at 95% 15%, rgba(99, 102, 241, 0.035), transparent 24%),
+        var(--bg-primary);
+}
+
+.navbar {
+    box-shadow: 0 2px 18px rgba(15, 23, 42, 0.06);
+}
+
+.nav-link {
+    position: relative;
+}
+
+.nav-link::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 2px;
+    width: 0;
+    height: 2px;
+    border-radius: 10px;
+    background: linear-gradient(90deg, #2563eb, #6366f1);
+    transition: width 0.28s ease, left 0.28s ease;
+}
+
+.nav-link:hover::after {
+    width: 70%;
+    left: 15%;
+}
+
+.btn-accent {
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+    color: #ffffff;
+    box-shadow: 0 5px 16px rgba(37, 99, 235, 0.18);
+}
+
+.btn-accent:hover {
+    background: linear-gradient(135deg, #1d4ed8, #4f46e5);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 9px 24px rgba(99, 102, 241, 0.24);
+}
+
+.article-card {
+    box-shadow: 0 3px 16px rgba(15, 23, 42, 0.05);
+}
+
+.article-card:hover {
+    border-color: rgba(37, 99, 235, 0.35);
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08),
+                0 4px 18px rgba(37, 99, 235, 0.10);
+}
+
+.category-pill:hover {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08), rgba(99, 102, 241, 0.07));
+}
+
+.category-pill.active {
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 5px 16px rgba(99, 102, 241, 0.18);
+}
+
+.category-tag {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.18);
+}
+
+.ai-summary-box {
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+    border-color: rgba(37, 99, 235, 0.18);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+}
+
+.auth-card {
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08),
+                0 4px 18px rgba(37, 99, 235, 0.06);
+}
+
+.auth-logo {
+    background: linear-gradient(90deg, #2563eb, #6366f1, #8b5cf6);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.form-control:hover,
+.form-select:hover,
+.search-input:hover {
+    border-color: rgba(37, 99, 235, 0.30) !important;
+}
+
+.form-control:focus,
+.form-select:focus,
+.search-input:focus {
+    background: #ffffff !important;
+}
+
+.sidebar-section,
+.preferences-panel {
+    box-shadow: 0 5px 20px rgba(15, 23, 42, 0.045);
+}
+
+.sidebar-section:hover,
+.preferences-panel:hover {
+    border-color: rgba(37, 99, 235, 0.22);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.07);
+}
+
+.category-check-label:hover {
+    background: rgba(37, 99, 235, 0.06);
+}
+
+.category-check-label.active,
+.category-check-label:has(input:checked) {
+    background: linear-gradient(135deg, #2563eb, #6366f1);
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.recently-viewed-item:hover {
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+}
+
+.trending-rank {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.10), rgba(99, 102, 241, 0.10));
+    border-color: rgba(99, 102, 241, 0.20);
+}
+
+.footer {
+    box-shadow: 0 -4px 20px rgba(15, 23, 42, 0.04);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #2563eb, #6366f1);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #1d4ed8, #4f46e5);
 }
