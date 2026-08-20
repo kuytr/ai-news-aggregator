@@ -1,184 +1,837 @@
 """
-services/email_service.py - Email Service
+services/email_service.py
 
-Handles all outgoing emails: OTP verification, daily digest.
-Uses Resend API instead of SMTP.
+Handles all outgoing emails:
+- OTP verification
+- Password reset
+- Daily news digest
+
+Email providers:
+1. Resend (primary)
+2. Gmail SMTP (fallback)
 """
 
-import resend
 import logging
-from typing import List
+import smtplib
 from datetime import datetime
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import List
+
+import resend
 
 from app.config import settings
+
 
 logger = logging.getLogger(__name__)
 
 
-def _send_with_smtp(to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
-    """Send using the SMTP credentials already supported by the project."""
-    if not settings.smtp_username or not settings.smtp_password or not settings.smtp_from_email:
+# ============================================================
+# RESEND
+# ============================================================
+
+def _send_with_resend(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str = "",
+) -> bool:
+    """
+    Send email using Resend.
+    """
+
+    # Check API key
+    if not settings.resend_api_key:
+        logger.warning(
+            "RESEND_API_KEY is not configured."
+        )
         return False
 
-    import smtplib
-    from email.mime.multipart import MIMEMultipart
-    from email.mime.text import MIMEText
+    # Resend needs a valid sender address
+    if not settings.smtp_from_email:
+        logger.error(
+            "SMTP_FROM_EMAIL is not configured. "
+            "Set SMTP_FROM_EMAIL to a verified sender email/domain in Resend."
+        )
+        return False
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        msg["From"] = f"{settings.smtp_from_name} <{settings.smtp_from_email}>"
-        msg["To"] = to_email
-        if text_body:
-            msg.attach(MIMEText(text_body, "plain"))
-        msg.attach(MIMEText(html_body, "html"))
+        resend.api_key = settings.resend_api_key
 
-        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=20) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(settings.smtp_username, settings.smtp_password)
-            server.sendmail(settings.smtp_from_email, to_email, msg.as_string())
-        logger.info("Email sent via SMTP to %s: %s", to_email, subject)
+        sender = (
+            f"{settings.smtp_from_name} "
+            f"<{settings.smtp_from_email}>"
+        )
+
+        response = resend.Emails.send(
+            {
+                "from": sender,
+                "to": [to_email],
+                "subject": subject,
+                "html": html_body,
+                "text": text_body or "",
+            }
+        )
+
+        logger.info(
+            "✅ Resend email sent successfully. "
+            "To=%s Subject=%s Response=%s",
+            to_email,
+            subject,
+            response,
+        )
+
         return True
+
     except Exception as exc:
-        logger.exception("SMTP email failed for %s: %s", to_email, exc)
+        logger.exception(
+            "❌ Resend failed. To=%s Subject=%s Error=%s",
+            to_email,
+            subject,
+            exc,
+        )
+
         return False
 
 
-def send_email(to_email: str, subject: str, html_body: str, text_body: str = "") -> bool:
-    """Send email using Resend first, then SMTP as a reliable fallback."""
-    if settings.resend_api_key:
-        try:
-            resend.api_key = settings.resend_api_key
-            sender_email = settings.smtp_from_email or "onboarding@resend.dev"
-            resend.Emails.send({
-                "from": f"{settings.smtp_from_name} <{sender_email}>",
-                "to": to_email,
-                "subject": subject,
-                "html": html_body,
-                "text": text_body or None,
-            })
-            logger.info("Email sent via Resend to %s: %s", to_email, subject)
-            return True
-        except Exception as exc:
-            logger.warning("Resend email failed; trying SMTP fallback: %s", exc)
+# ============================================================
+# SMTP
+# ============================================================
 
-    if _send_with_smtp(to_email, subject, html_body, text_body):
+def _send_with_smtp(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str = "",
+) -> bool:
+    """
+    Send email using SMTP.
+
+    Recommended for Gmail:
+    SMTP_HOST=smtp.gmail.com
+    SMTP_PORT=587
+    SMTP_USERNAME=your@gmail.com
+    SMTP_PASSWORD=your Gmail App Password
+    SMTP_FROM_EMAIL=your@gmail.com
+    """
+
+    if not settings.smtp_username:
+        logger.warning(
+            "SMTP_USERNAME is not configured."
+        )
+        return False
+
+    if not settings.smtp_password:
+        logger.warning(
+            "SMTP_PASSWORD is not configured."
+        )
+        return False
+
+    if not settings.smtp_from_email:
+        logger.warning(
+            "SMTP_FROM_EMAIL is not configured."
+        )
+        return False
+
+    try:
+
+        message = MIMEMultipart("alternative")
+
+        message["Subject"] = subject
+
+        message["From"] = (
+            f"{settings.smtp_from_name} "
+            f"<{settings.smtp_from_email}>"
+        )
+
+        message["To"] = to_email
+
+        # Plain text version
+        if text_body:
+            message.attach(
+                MIMEText(
+                    text_body,
+                    "plain",
+                    "utf-8",
+                )
+            )
+
+        # HTML version
+        message.attach(
+            MIMEText(
+                html_body,
+                "html",
+                "utf-8",
+            )
+        )
+
+        with smtplib.SMTP(
+            settings.smtp_host,
+            settings.smtp_port,
+            timeout=30,
+        ) as server:
+
+            server.ehlo()
+
+            server.starttls()
+
+            server.ehlo()
+
+            server.login(
+                settings.smtp_username,
+                settings.smtp_password,
+            )
+
+            server.sendmail(
+                settings.smtp_from_email,
+                [to_email],
+                message.as_string(),
+            )
+
+        logger.info(
+            "✅ SMTP email sent successfully. "
+            "To=%s Subject=%s",
+            to_email,
+            subject,
+        )
+
         return True
 
-    logger.error("All configured email providers failed for %s: %s", to_email, subject)
+    except Exception as exc:
+
+        logger.exception(
+            "❌ SMTP email failed. "
+            "To=%s Subject=%s Error=%s",
+            to_email,
+            subject,
+            exc,
+        )
+
+        return False
+
+
+# ============================================================
+# GENERAL EMAIL FUNCTION
+# ============================================================
+
+def send_email(
+    to_email: str,
+    subject: str,
+    html_body: str,
+    text_body: str = "",
+) -> bool:
+    """
+    Send an email.
+
+    Order:
+        1. Resend
+        2. SMTP
+
+    Returns:
+        True  = email successfully submitted
+        False = all configured providers failed
+    """
+
+    logger.info(
+        "📧 Attempting to send email to %s | Subject=%s",
+        to_email,
+        subject,
+    )
+
+    # --------------------------------------------------------
+    # Try Resend first
+    # --------------------------------------------------------
+
+    if settings.resend_api_key:
+
+        logger.info(
+            "Trying Resend..."
+        )
+
+        if _send_with_resend(
+            to_email,
+            subject,
+            html_body,
+            text_body,
+        ):
+            return True
+
+        logger.warning(
+            "Resend failed. Trying SMTP fallback..."
+        )
+
+    else:
+
+        logger.info(
+            "Resend is not configured."
+        )
+
+    # --------------------------------------------------------
+    # Try SMTP
+    # --------------------------------------------------------
+
+    if _send_with_smtp(
+        to_email,
+        subject,
+        html_body,
+        text_body,
+    ):
+        return True
+
+    # --------------------------------------------------------
+    # Everything failed
+    # --------------------------------------------------------
+
+    logger.error(
+        "❌ ALL EMAIL PROVIDERS FAILED.\n"
+        "Recipient: %s\n"
+        "Subject: %s",
+        to_email,
+        subject,
+    )
+
     return False
 
-def send_otp_email(email: str, otp_code: str, username: str = "User") -> bool:
-    subject = f"Your Verification Code - {settings.app_name}"
 
-    html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: Arial, sans-serif; background: #f6f8fc; color: #172033; padding: 40px;">
-        <div style="max-width: 500px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 40px; border: 1px solid #dbeafe;">
-            <h1 style="color: #2563eb; margin-bottom: 8px;">🔐 Verify Your Email</h1>
-            <p style="color: #526071;">Hi <strong>{username}</strong>,</p>
-            <p style="color: #526071;">Your one-time verification code is:</p>
-            <div style="background: #eff6ff; border: 2px solid #2563eb; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;">
-                <span style="font-size: 36px; font-weight: bold; color: #2563eb; letter-spacing: 8px;">{otp_code}</span>
-            </div>
-            <p style="color: #526071;">This code expires in <strong>{settings.otp_expire_minutes} minutes</strong>.</p>
-            <p style="color: #526071;">If you didn't request this, please ignore this email.</p>
-            <hr style="border-color: #00d4ff33; margin: 20px 0;">
-            <p style="color: #7b8794; font-size: 12px;">© {datetime.now().year} {settings.app_name}</p>
-        </div>
-    </body>
-    </html>
-    """
+# ============================================================
+# OTP EMAIL
+# ============================================================
 
-    text_body = f"Hi {username},\n\nYour OTP code is: {otp_code}\n\nExpires in {settings.otp_expire_minutes} minutes."
-    return send_email(email, subject, html_body, text_body)
+def send_otp_email(
+    email: str,
+    otp_code: str,
+    username: str = "User",
+) -> bool:
 
-
-
-def send_password_reset_email(email: str, username: str, reset_url: str) -> bool:
-    subject = f"Reset Your Password - {settings.app_name}"
-    html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: Arial, sans-serif; background: #f5f7fb; color: #1f2937; padding: 40px;">
-        <div style="max-width: 520px; margin: 0 auto; background: #ffffff; border-radius: 16px; padding: 40px; border: 1px solid #e5e7eb; box-shadow: 0 8px 30px rgba(15,23,42,.08);">
-            <h1 style="color: #0284c7; margin-bottom: 8px;">Reset Your Password</h1>
-            <p style="color: #64748b;">Hi <strong>{username}</strong>,</p>
-            <p style="color: #64748b; line-height: 1.6;">We received a request to reset your {settings.app_name} password. Click the button below to choose a new password.</p>
-            <div style="text-align:center; margin: 28px 0;">
-                <a href="{reset_url}" style="display:inline-block; background:#0284c7; color:#ffffff; text-decoration:none; padding:13px 24px; border-radius:9px; font-weight:700;">Reset Password</a>
-            </div>
-            <p style="color: #64748b; font-size: 13px;">This link expires in <strong>{settings.password_reset_expire_minutes} minutes</strong> and can only be used once.</p>
-            <p style="color: #94a3b8; font-size: 12px;">If you did not request this, you can safely ignore this email.</p>
-            <hr style="border:0; border-top:1px solid #e5e7eb; margin:24px 0;">
-            <p style="color:#94a3b8; font-size:12px; text-align:center;">© {datetime.now().year} {settings.app_name}</p>
-        </div>
-    </body>
-    </html>
-    """
-    text_body = (
-        f"Hi {username},\n\nReset your password here: {reset_url}\n\n"
-        f"This link expires in {settings.password_reset_expire_minutes} minutes and can only be used once."
+    subject = (
+        f"Your Verification Code - "
+        f"{settings.app_name}"
     )
-    return send_email(email, subject, html_body, text_body)
+
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Email Verification</title>
+</head>
+
+<body style="
+    margin:0;
+    padding:40px 20px;
+    background:#f6f8fc;
+    font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+    max-width:500px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:16px;
+    padding:40px;
+    border:1px solid #dbeafe;
+">
+
+    <h1 style="
+        margin:0 0 20px;
+        color:#2563eb;
+        font-size:28px;
+    ">
+        🔐 Verify Your Email
+    </h1>
+
+    <p style="
+        color:#475569;
+        font-size:16px;
+    ">
+        Hi <strong>{username}</strong>,
+    </p>
+
+    <p style="
+        color:#475569;
+        line-height:1.6;
+    ">
+        Thank you for registering with
+        <strong>{settings.app_name}</strong>.
+    </p>
+
+    <p style="
+        color:#475569;
+        line-height:1.6;
+    ">
+        Your verification code is:
+    </p>
+
+    <div style="
+        background:#eff6ff;
+        border:2px solid #2563eb;
+        border-radius:12px;
+        padding:22px;
+        text-align:center;
+        margin:25px 0;
+    ">
+
+        <span style="
+            font-size:36px;
+            font-weight:bold;
+            color:#2563eb;
+            letter-spacing:8px;
+        ">
+            {otp_code}
+        </span>
+
+    </div>
+
+    <p style="
+        color:#475569;
+        line-height:1.6;
+    ">
+        This verification code expires in
+        <strong>{settings.otp_expire_minutes} minutes</strong>.
+    </p>
+
+    <p style="
+        color:#64748b;
+        font-size:14px;
+    ">
+        If you did not request this verification code,
+        you can safely ignore this email.
+    </p>
+
+    <hr style="
+        border:0;
+        border-top:1px solid #e2e8f0;
+        margin:30px 0;
+    ">
+
+    <p style="
+        color:#94a3b8;
+        font-size:12px;
+        text-align:center;
+    ">
+        © {datetime.now().year} {settings.app_name}
+    </p>
+
+</div>
+
+</body>
+</html>
+"""
+
+    text_body = (
+        f"Hi {username},\n\n"
+        f"Your verification code is: {otp_code}\n\n"
+        f"This code expires in "
+        f"{settings.otp_expire_minutes} minutes.\n\n"
+        f"If you did not request this code, "
+        f"you can safely ignore this email."
+    )
+
+    return send_email(
+        email,
+        subject,
+        html_body,
+        text_body,
+    )
+
+
+# ============================================================
+# PASSWORD RESET EMAIL
+# ============================================================
+
+def send_password_reset_email(
+    email: str,
+    username: str,
+    reset_url: str,
+) -> bool:
+
+    subject = (
+        f"Reset Your Password - "
+        f"{settings.app_name}"
+    )
+
+    html_body = f"""
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>Reset Password</title>
+</head>
+
+<body style="
+    margin:0;
+    padding:40px 20px;
+    background:#f5f7fb;
+    font-family:Arial,Helvetica,sans-serif;
+">
+
+<div style="
+    max-width:520px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:16px;
+    padding:40px;
+    border:1px solid #e5e7eb;
+">
+
+    <h1 style="
+        color:#0284c7;
+        margin-bottom:20px;
+    ">
+        🔑 Reset Your Password
+    </h1>
+
+    <p style="color:#475569;">
+        Hi <strong>{username}</strong>,
+    </p>
+
+    <p style="
+        color:#475569;
+        line-height:1.6;
+    ">
+        We received a request to reset your
+        <strong>{settings.app_name}</strong>
+        password.
+    </p>
+
+    <p style="
+        color:#475569;
+        line-height:1.6;
+    ">
+        Click the button below to create a new password.
+    </p>
+
+    <div style="
+        text-align:center;
+        margin:30px 0;
+    ">
+
+        <a href="{reset_url}"
+           style="
+           display:inline-block;
+           background:#0284c7;
+           color:#ffffff;
+           text-decoration:none;
+           padding:14px 26px;
+           border-radius:10px;
+           font-weight:bold;
+           ">
+            Reset Password
+        </a>
+
+    </div>
+
+    <p style="
+        color:#64748b;
+        font-size:13px;
+        line-height:1.6;
+    ">
+        This reset link expires in
+        <strong>
+            {settings.password_reset_expire_minutes}
+            minutes
+        </strong>
+        and can only be used once.
+    </p>
+
+    <p style="
+        color:#94a3b8;
+        font-size:12px;
+    ">
+        If you did not request a password reset,
+        you can safely ignore this email.
+    </p>
+
+    <hr style="
+        border:0;
+        border-top:1px solid #e5e7eb;
+        margin:30px 0;
+    ">
+
+    <p style="
+        color:#94a3b8;
+        font-size:12px;
+        text-align:center;
+    ">
+        © {datetime.now().year} {settings.app_name}
+    </p>
+
+</div>
+
+</body>
+</html>
+"""
+
+    text_body = (
+        f"Hi {username},\n\n"
+        f"Reset your password using this link:\n"
+        f"{reset_url}\n\n"
+        f"This link expires in "
+        f"{settings.password_reset_expire_minutes} minutes "
+        f"and can only be used once."
+    )
+
+    return send_email(
+        email,
+        subject,
+        html_body,
+        text_body,
+    )
+
+
+# ============================================================
+# DAILY NEWS DIGEST
+# ============================================================
 
 def send_daily_digest(
     email: str,
     username: str,
     trending_articles: List[dict],
-    personalized_articles: List[dict]
+    personalized_articles: List[dict],
 ) -> bool:
-    subject = f"📰 Your Daily News Digest - {datetime.now().strftime('%B %d, %Y')}"
 
-    def article_html(art: dict, idx: int) -> str:
+    subject = (
+        f"📰 Your Daily News Digest - "
+        f"{datetime.now().strftime('%B %d, %Y')}"
+    )
+
+    def article_html(
+        article: dict,
+        index: int,
+    ) -> str:
+
+        sentiment = article.get(
+            "sentiment",
+            "Neutral",
+        )
+
         sentiment_color = {
             "Positive": "#00c853",
             "Negative": "#ff5252",
-            "Neutral": "#9e9e9e"
-        }.get(art.get("sentiment", "Neutral"), "#9e9e9e")
+            "Neutral": "#9e9e9e",
+        }.get(
+            sentiment,
+            "#9e9e9e",
+        )
+
+        title = article.get(
+            "title",
+            "Untitled",
+        )
+
+        url = article.get(
+            "url",
+            "#",
+        )
+
+        summary = article.get(
+            "summary",
+            "",
+        )
+
+        source = article.get(
+            "source",
+            "Unknown",
+        )
+
+        category = article.get(
+            "category",
+            "General",
+        )
 
         return f"""
-        <div style="background: #16213e; border-radius: 8px; padding: 16px; margin-bottom: 12px; border-left: 3px solid #00d4ff;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="color: #2563eb; font-weight: bold;">#{idx}</span>
-                <span style="background: {sentiment_color}22; color: {sentiment_color}; padding: 2px 8px; border-radius: 10px; font-size: 12px;">{art.get('sentiment', 'Neutral')}</span>
-            </div>
-            <h3 style="color: #e0e0e0; margin: 0 0 8px 0; font-size: 15px;">
-                <a href="{art.get('url', '#')}" style="color: #e0e0e0; text-decoration: none;">{art.get('title', 'Untitled')}</a>
-            </h3>
-            <p style="color: #8080a0; font-size: 13px; margin: 0;">{art.get('summary', '')[:200]}...</p>
-            <p style="color: #7b8794; font-size: 11px; margin: 8px 0 0 0;">📰 {art.get('source', 'Unknown')} | 📂 {art.get('category', 'General')}</p>
-        </div>
+<div style="
+    background:#16213e;
+    border-radius:10px;
+    padding:18px;
+    margin-bottom:15px;
+    border-left:4px solid #2563eb;
+">
+
+    <div style="
+        margin-bottom:10px;
+    ">
+
+        <span style="
+            color:#60a5fa;
+            font-weight:bold;
+        ">
+            #{index}
+        </span>
+
+        <span style="
+            background:{sentiment_color}22;
+            color:{sentiment_color};
+            padding:4px 9px;
+            border-radius:10px;
+            font-size:12px;
+            margin-left:8px;
+        ">
+            {sentiment}
+        </span>
+
+    </div>
+
+    <h3 style="
+        margin:0 0 10px;
+        font-size:16px;
+    ">
+
+        <a href="{url}"
+           style="
+           color:#ffffff;
+           text-decoration:none;
+           ">
+            {title}
+        </a>
+
+    </h3>
+
+    <p style="
+        color:#cbd5e1;
+        font-size:13px;
+        line-height:1.5;
+    ">
+        {summary[:250]}
+    </p>
+
+    <p style="
+        color:#94a3b8;
+        font-size:11px;
+    ">
+        📰 {source}
+        &nbsp; | &nbsp;
+        📂 {category}
+    </p>
+
+</div>
+"""
+
+    trending_html = "".join(
+        article_html(
+            article,
+            index + 1,
+        )
+        for index, article in enumerate(
+            trending_articles[:5]
+        )
+    )
+
+    personalized_html = "".join(
+        article_html(
+            article,
+            index + 1,
+        )
+        for index, article in enumerate(
+            personalized_articles[:5]
+        )
+    )
+
+    if not trending_html:
+        trending_html = """
+        <p style="color:#64748b;">
+            No trending articles available today.
+        </p>
         """
 
-    trending_html = "".join(article_html(a, i + 1) for i, a in enumerate(trending_articles[:5]))
-    personalized_html = "".join(article_html(a, i + 1) for i, a in enumerate(personalized_articles[:5]))
+    if not personalized_html:
+        personalized_html = """
+        <p style="color:#64748b;">
+            Set your preferences to receive
+            personalized news.
+        </p>
+        """
 
     html_body = f"""
-    <!DOCTYPE html>
-    <html>
-    <body style="font-family: Arial, sans-serif; background: #f6f8fc; color: #172033; padding: 40px;">
-        <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; padding: 40px; border: 1px solid #dbeafe;">
-            <h1 style="color: #2563eb;">📰 Daily News Digest</h1>
-            <p style="color: #526071;">Good morning, <strong>{username}</strong>! Here's your personalized news for today.</p>
+<!DOCTYPE html>
+<html>
 
-            <h2 style="color: #ff9800; border-bottom: 1px solid #ff980033; padding-bottom: 8px;">🔥 Trending Now</h2>
-            {trending_html if trending_html else '<p style="color: #7b8794;">No trending articles today.</p>'}
+<head>
+    <meta charset="UTF-8">
+    <title>Daily News Digest</title>
+</head>
 
-            <h2 style="color: #2563eb; border-bottom: 1px solid #00d4ff33; padding-bottom: 8px; margin-top: 30px;">⭐ For You</h2>
-            {personalized_html if personalized_html else '<p style="color: #7b8794;">Set your preferences to get personalized news.</p>'}
+<body style="
+    margin:0;
+    padding:40px 20px;
+    background:#f6f8fc;
+    font-family:Arial,Helvetica,sans-serif;
+">
 
-            <hr style="border-color: #00d4ff22; margin: 30px 0;">
-            <p style="color: #7b8794; font-size: 12px; text-align: center;">
-                © {datetime.now().year} {settings.app_name} | 
-                <a href="#" style="color: #2563eb;">Manage Preferences</a>
-            </p>
-        </div>
-    </body>
-    </html>
-    """
+<div style="
+    max-width:600px;
+    margin:auto;
+    background:#ffffff;
+    border-radius:16px;
+    padding:40px;
+    border:1px solid #dbeafe;
+">
 
-    return send_email(email, subject, html_body)
+    <h1 style="
+        color:#2563eb;
+    ">
+        📰 Daily News Digest
+    </h1>
+
+    <p style="
+        color:#475569;
+        line-height:1.6;
+    ">
+        Good morning,
+        <strong>{username}</strong>!
+    </p>
+
+    <p style="
+        color:#475569;
+    ">
+        Here is your personalized news digest.
+    </p>
+
+    <h2 style="
+        color:#f59e0b;
+        border-bottom:1px solid #fde68a;
+        padding-bottom:10px;
+    ">
+        🔥 Trending Now
+    </h2>
+
+    {trending_html}
+
+    <h2 style="
+        color:#2563eb;
+        border-bottom:1px solid #bfdbfe;
+        padding-bottom:10px;
+        margin-top:35px;
+    ">
+        ⭐ For You
+    </h2>
+
+    {personalized_html}
+
+    <hr style="
+        border:0;
+        border-top:1px solid #e2e8f0;
+        margin:30px 0;
+    ">
+
+    <p style="
+        color:#94a3b8;
+        font-size:12px;
+        text-align:center;
+    ">
+        © {datetime.now().year} {settings.app_name}
+    </p>
+
+</div>
+
+</body>
+</html>
+"""
+
+    return send_email(
+        email,
+        subject,
+        html_body,
+    )
